@@ -5,7 +5,11 @@ This set-up uses a adafruit Adalogger and ds3231 featherwing to log data and tra
 K-type thermocouple will be measured with a MCP9600 universal thermocouple amplifier that uses I2C communication.
 This sketch also flashes a green light after data has been logged as an indicator that the data is being logged properly.
  */
+/**************************************************
+      define the pin for monitoring the battery
+**************************************************/
 
+#define VBATPIN A7
 
 /**************************************************
       set time of sample interval
@@ -28,7 +32,9 @@ RTC_DS3231 rtc;
 #include <SD.h>
 
 const int chipSelect = 4;
+int sd_pin = 7;
 int grnLED = 8;
+int redLED = 13;
 
 /**************************************************
       Thermocouple amplifier set-up 
@@ -46,11 +52,11 @@ Adafruit_MCP9600 mcp;
 void setup()
 {
     Serial.begin(115200);
-    while (!Serial) {
-      delay(10);
-    }
 
+    pinMode(sd_pin,INPUT);
     pinMode(grnLED,OUTPUT);
+    pinMode(redLED,OUTPUT);
+    digitalWrite(redLED,LOW);
 
 /**************************************************
       RTC Initialization and set time
@@ -62,7 +68,7 @@ void setup()
     while (1) delay(10);
   }
 
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+//    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
 
 /**************************************************
@@ -74,7 +80,7 @@ void setup()
     /* Initialise the driver with I2C_ADDRESS and the default I2C bus. */
     if (! mcp.begin(I2C_ADDRESS)) {
         Serial.println("Sensor not found. Check wiring!");
-        while (1);
+       
     }
 
   Serial.println("Found MCP9600!");
@@ -115,7 +121,13 @@ void setup()
 /**************************************************
       SD Card Initialization and print file headers
 **************************************************/
-
+  while(digitalRead(sd_pin) == 0){
+    Serial.println("No SD Card Inserted!!!");
+    digitalWrite(grnLED,HIGH);
+    delay(500);
+    digitalWrite(grnLED,LOW);
+    delay(500);
+  }
   Serial.print("Initializing SD card...");
 
   // see if the card is present and can be initialized:
@@ -125,22 +137,22 @@ void setup()
     while (1);
   }
   Serial.println("card initialized.");
-  digitalWrite(grnLED,HIGH);
+  digitalWrite(redLED,HIGH);
   delay(20);
-  digitalWrite(grnLED,LOW);
+  digitalWrite(redLED,LOW);
   
 
   File dataFile = SD.open("datalog.csv", FILE_WRITE);
 
   // if the file is available, write to it:
   if (dataFile) {
-    dataFile.println("date, time, hot_j, cold_j, adc, rtc_temp");
+    dataFile.println("date, time, v_bat, hot_j, cold_j, adc, rtc_temp");
     dataFile.close();
     // print to the serial port too:
-    Serial.println("date, time, hot_j, cold_j, adc, rtc_temp");
-      digitalWrite(grnLED,HIGH);
+    Serial.println("date, time, v_bat, hot_j, cold_j, adc, rtc_temp");
+      digitalWrite(redLED,HIGH);
       delay(20);
-      digitalWrite(grnLED,LOW);
+      digitalWrite(redLED,LOW);
 
   }
 
@@ -172,6 +184,12 @@ void loop()
     timeString += now.second(), DEC;
     timeString += ",";
 
+/**************************************************
+      get the battery voltage
+**************************************************/
+
+float vbat = analogRead(VBATPIN)*2*3.3/1024;
+dataString += vbat; dataString += ",";
 
 /**************************************************
       MCP9600 get temperature data 
@@ -195,9 +213,9 @@ File dataFile = SD.open("datalog.csv", FILE_WRITE);
     // print to the serial port too:
     Serial.print(timeString);
     Serial.println(dataString);
-      digitalWrite(grnLED,HIGH);
+      digitalWrite(redLED,HIGH);
       delay(20);
-      digitalWrite(grnLED,LOW);
+      digitalWrite(redLED,LOW);
 
   }
   // if the file isn't open, pop up an error:
