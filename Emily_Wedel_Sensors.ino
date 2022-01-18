@@ -146,10 +146,10 @@ void setup()
 
   // if the file is available, write to it:
   if (dataFile) {
-    dataFile.println("date, time, v_bat, hot_j, cold_j, adc, rtc_temp");
+    dataFile.println("date, time, v_bat, rtc_temp, hot_j, cold_j, adc");
     dataFile.close();
     // print to the serial port too:
-    Serial.println("date, time, v_bat, hot_j, cold_j, adc, rtc_temp");
+    Serial.println("date, time, v_bat, rtc_temp, hot_j, cold_j, adc");
       digitalWrite(redLED,HIGH);
       delay(20);
       digitalWrite(redLED,LOW);
@@ -195,10 +195,11 @@ dataString += vbat; dataString += ",";
       MCP9600 get temperature data 
 **************************************************/
 
+  dataString += rtc.getTemperature(); dataString += ",";
   dataString += mcp.readThermocouple(); dataString += ",";
   dataString += mcp.readAmbient(); dataString += ",";
-  dataString += mcp.readADC() * 2; dataString += ",";
-  dataString += rtc.getTemperature();
+  dataString += mcp.readADC() * 2;
+  
 
 /**************************************************
       SD Card print time and data
